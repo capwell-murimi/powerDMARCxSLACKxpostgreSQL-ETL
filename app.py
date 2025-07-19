@@ -120,8 +120,12 @@ def root():
 
 # Slack bot thread
 def start_slack():
-    print("👂 Listening to Slack events...")
-    SocketModeHandler(app, os.getenv("SLACK_APP_TOKEN")).start()
+    try:
+        print("👂 Listening to Slack events via Socket Mode...")
+        SocketModeHandler(app, os.getenv("SLACK_APP_TOKEN")).start()
+    except Exception as e:
+        print("❌ Failed to start Slack SocketModeHandler:", e)
+
 
 # Start both
 if __name__ == "__main__":
