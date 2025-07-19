@@ -6,6 +6,10 @@ import re
 import os
 import html
 from dotenv import load_dotenv
+import uvicorn
+from fastapi import FastAPI
+import threading
+
 
 load_dotenv()
 
@@ -107,6 +111,21 @@ def handle_message(event, say):
                 conn.close()
 
 # Start the app
-if __name__ == "__main__":
-    print("Listening for alerts from secretChannel...")
+api = FastAPI()
+
+@api.get("/")
+def root():
+    return {"status": "Slack ETL is running!"}
+
+
+def start_slack():
+    print("👂 Listening to Slack events...")
     SocketModeHandler(app, os.getenv("SLACK_APP_TOKEN")).start()
+
+if __name__ == "__main__":
+    # Start Slack bot in background thread
+    threading.Thread(target=start_slack).start()
+
+    # Start FastAPI server (Koyeb health check needs this)
+    uvicorn.run(api, host="0.0.0.0", port=3000)
+

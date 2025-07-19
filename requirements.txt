@@ -1,4 +1,8 @@
-slack-bolt
-pandas
+slack_bolt
+fastapi
+uvicorn
 psycopg2
+pandas
 python-dotenv
+html5lib      # if you ever parse more HTML data
+requests      # if making external API calls
