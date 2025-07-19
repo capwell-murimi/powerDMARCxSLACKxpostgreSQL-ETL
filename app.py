@@ -111,21 +111,22 @@ def handle_message(event, say):
                 conn.close()
 
 # Start the app
+# FastAPI instance (for Koyeb health check)
 api = FastAPI()
 
 @api.get("/")
 def root():
-    return {"status": "Slack ETL is running!"}
+    return {"status": "Slack ETL bot is alive!"}
 
-
+# Slack bot thread
 def start_slack():
     print("👂 Listening to Slack events...")
     SocketModeHandler(app, os.getenv("SLACK_APP_TOKEN")).start()
 
+# Start both
 if __name__ == "__main__":
-    # Start Slack bot in background thread
-    threading.Thread(target=start_slack).start()
+    slack_thread = threading.Thread(target=start_slack, daemon=True)
+    slack_thread.start()
 
-    # Start FastAPI server (Koyeb health check needs this)
+    # This will keep the process alive
     uvicorn.run(api, host="0.0.0.0", port=3000)
-
