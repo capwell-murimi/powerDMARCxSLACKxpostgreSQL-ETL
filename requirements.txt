@@ -1,0 +1,4 @@
+slack-bolt
+pandas
+psycopg2
+python-dotenv
