@@ -15,10 +15,6 @@ app = App(token=os.getenv('SLACK_BOT_TOKEN'))
 # Initialize DataFrame
 alerts_df = pd.DataFrame(columns=["title", "account_name", "monitoring_group", "assets_blocklisted", "zone_names"])
 
-# PostgreSQL config
-conn = psycopg2.connect(os.getenv("SUPABASE_DB_URL"))
-cursor = conn.cursor()
-
 # Parser function to extract fields from Slack message text
 def extract_fields(text):
     text = html.unescape(text)  # Decode &lt; and &gt;
@@ -46,6 +42,7 @@ def extract_fields(text):
 # Slack message listener
 @app.event("message")
 def handle_message(event, say):
+
     text = event.get("text", "")
 
     if "blocklisted" in text.lower():
@@ -53,17 +50,19 @@ def handle_message(event, say):
         data["channel"] = event.get("channel")
         data["timestamp"] = event.get("ts")
 
-        # Append to DataFrame
-       # Assuming alerts_df is a global variable
+        # Append to DataFrame (optional)
         global alerts_df
         new_row = pd.DataFrame([data])
         alerts_df = pd.concat([alerts_df, new_row], ignore_index=True)
 
+        # Insert into Supabase PostgreSQL
+        try:
+            conn = psycopg2.connect(os.getenv("SUPABASE_DB_URL"))
+            cursor = conn.cursor()
 
-        #CREATE A TABLE IF IT DOEST NOT EXIST
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS alerts
-                (
+            # Ensure the alerts table exists
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS alerts (
                     id SERIAL PRIMARY KEY,
                     title TEXT,
                     account_name TEXT,
@@ -72,15 +71,17 @@ def handle_message(event, say):
                     zone_names TEXT,
                     channel TEXT,
                     timestamp TIMESTAMP
-                )
-        """)
+                );
+            """)
 
-
-        # Insert into PostgreSQL
-        try:
+            # Insert the extracted data
             cursor.execute(
                 """
-                INSERT INTO alerts (title, account_name, monitoring_group, assets_blocklisted, zone_names, channel, timestamp)
+                INSERT INTO alerts (
+                    title, account_name, monitoring_group,
+                    assets_blocklisted, zone_names,
+                    channel, timestamp
+                )
                 VALUES (%s, %s, %s, %s, %s, %s, to_timestamp(%s))
                 """,
                 (
@@ -94,10 +95,16 @@ def handle_message(event, say):
                 )
             )
             conn.commit()
-            print("Inserted alert into database, Good Job!.")
+            print("✅ Inserted alert into Supabase DB.")
         except Exception as e:
-            print("Failed to insert data:", e)
-            conn.rollback()
+            print("❌ Failed to insert data:", e)
+            if conn:
+                conn.rollback()
+        finally:
+            if 'cursor' in locals():
+                cursor.close()
+            if 'conn' in locals():
+                conn.close()
 
 # Start the app
 if __name__ == "__main__":
