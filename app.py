@@ -46,7 +46,7 @@ def extract_fields(text):
 # Slack message listener
 @app.event("message")
 def handle_message(event, say):
-
+    print("📩 Received Slack message event:", event)
     text = event.get("text", "")
 
     if "blocklisted" in text.lower():
@@ -119,18 +119,19 @@ def root():
     return {"status": "Slack ETL bot is alive!"}
 
 # Slack bot thread
-def start_slack():
-    try:
-        print("👂 Listening to Slack events via Socket Mode...")
-        SocketModeHandler(app, os.getenv("SLACK_APP_TOKEN")).start()
-    except Exception as e:
-        print("❌ Failed to start Slack SocketModeHandler:", e)
-
-
-# Start both
+# Start both Slack listener and FastAPI server
 if __name__ == "__main__":
-    slack_thread = threading.Thread(target=start_slack, daemon=True)
+    def start_slack():
+        try:
+            print("👂 Listening to Slack events via Socket Mode...")
+            SocketModeHandler(app, os.getenv("SLACK_APP_TOKEN")).start()
+        except Exception as e:
+            print("❌ Failed to start Slack SocketModeHandler:", e)
+
+    # Start Slack listener thread (NOT daemon)
+    slack_thread = threading.Thread(target=start_slack)
     slack_thread.start()
 
-    # This will keep the process alive
+    # Run FastAPI server (needed for Koyeb health check)
+    print("🚀 Starting FastAPI server...")
     uvicorn.run(api, host="0.0.0.0", port=3000)
