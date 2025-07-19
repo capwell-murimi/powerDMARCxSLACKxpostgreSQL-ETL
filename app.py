@@ -118,20 +118,24 @@ api = FastAPI()
 def root():
     return {"status": "Slack ETL bot is alive!"}
 
-# Slack bot thread
-# Start both Slack listener and FastAPI server
+from multiprocessing import Process
+
+def start_slack():
+    try:
+        print("👂 Listening to Slack events via Socket Mode...")
+        SocketModeHandler(app, os.getenv("SLACK_APP_TOKEN")).start()
+    except Exception as e:
+        print("❌ Failed to start Slack SocketModeHandler:", e)
+
 if __name__ == "__main__":
-    def start_slack():
-        try:
-            print("👂 Listening to Slack events via Socket Mode...")
-            SocketModeHandler(app, os.getenv("SLACK_APP_TOKEN")).start()
-        except Exception as e:
-            print("❌ Failed to start Slack SocketModeHandler:", e)
+    # Start Slack listener in a separate process
+    slack_process = Process(target=start_slack)
+    slack_process.start()
 
-    # Start Slack listener thread (NOT daemon)
-    slack_thread = threading.Thread(target=start_slack)
-    slack_thread.start()
-
-    # Run FastAPI server (needed for Koyeb health check)
+    # Run FastAPI server
     print("🚀 Starting FastAPI server...")
-    uvicorn.run(api, host="0.0.0.0", port=3000)
+    uvicorn.run("app:api", host="0.0.0.0", port=3000)
+
+    # Wait for Slack process to finish
+    slack_process.join()
+
