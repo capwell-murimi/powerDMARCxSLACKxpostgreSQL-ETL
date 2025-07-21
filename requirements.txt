@@ -1,7 +1,7 @@
 slack_bolt
 fastapi
 uvicorn
-psycopg2
+psycopg2-binary
 pandas
 python-dotenv
 html5lib      # if you ever parse more HTML data

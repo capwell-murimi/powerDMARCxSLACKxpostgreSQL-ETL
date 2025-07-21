@@ -54,7 +54,7 @@ def handle_message(event, say):
         data["channel"] = event.get("channel")
         data["timestamp"] = event.get("ts")
 
-        # Append to DataFrame (optional)
+        # Append to DataFrame
         global alerts_df
         new_row = pd.DataFrame([data])
         alerts_df = pd.concat([alerts_df, new_row], ignore_index=True)
